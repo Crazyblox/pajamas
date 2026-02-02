@@ -1,17 +1,28 @@
 --!strict
 --!native
 
--- Loop plugin for Roblox
--- Hooks provided functions up to a host-platform's loop events
+--[[
+	Pajamas plugin - event:
+	
+	A simple event module that provides an agnostic interface
+	for a pajamas project to hook up to a serial or parallel
+	loop event determined by the host runtime.
+]]
 
 export type Hook = {
 	Connect: (Hook, boolean?) -> (),
 	Disconnect: (Hook) -> ()
 }
 
-local Events = {
-	Loop = game:GetService("RunService")[ game.Players.LocalPlayer and "PreRender" or "PreSimulation" ]
-}
+local RunService = game:GetService("RunService")
+
+local Events = {}
+
+Events.Loop =
+	if game.Players.LocalPlayer then
+		RunService.PreRender
+	else
+		RunService.PreSimulation
 
 return function( Function, EventName: string )
 	assert( Events[EventName], `Event named '{EventName}' does not exist` )
