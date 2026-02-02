@@ -1,9 +1,17 @@
 --!strict
 --!native
 
--- Pajamas - input
--- Crude WIP plugin for providing a method of keyboard input to the project
--- No way to disconnect it properly yet, trying to get things off the ground by showing various use-cases.
+--[[
+	Pajamas plugin - input:
+	
+	A simple keyboard input module providing an agnostic interface
+	for a pajamas project to react to keyboard user intent.
+	
+	Note:
+	No method for disconnection keyboard input yet.
+	It is currently assumed that a pajamas project runs for as
+	long as the host runtime is also running.
+]]
 
 local Input = {}
 local UIS = game:GetService("UserInputService")

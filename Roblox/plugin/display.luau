@@ -1,25 +1,56 @@
 --!strict
 --!native
 
--- Pajamas Plugin - Display:
--- Enables the ability to display framebuffer content within Roblox
+--[[
+	Pajamas plugin - display:
+	
+	This module is responsible for providing the pajamas host runtime
+	a means to display video content, and provides the interface for
+	a pajamas project to setting up a video out for displaying video content.
+	
+	--[=[ MODULE : API ]=]--
+	
+	--> Module.SanitiseResolution( Intent: vector): vector
+	Allows a pajamas project to sanitise the intended resolution
+	by passing the value to the host runtime, taking care of instances
+	when the intended resolution is either too small or too large for the
+	runtime to be able to provide.
+	
+	--> Module.New( Settings: { [string]: any } ): Display
+	Creates and returns a display in which a pajamas project can
+	write to the framebuffer, submit the buffer for presenting,
+	and attributing the settings which were initially provided in
+	creating the display.
+	
+	--[=[ DISPLAY : API ]=]--
+	
+	--> Display.Settings: { [string]: any }
+	The settings which were provided during creation of the display.
+	
+	--> Display.Framebuffer: buffer
+	Stores the display's framebuffer content.
+	The storage format is RGBAu8.
+	
+	--> Display.Present()
+	Submits the current Display.Framebuffer to be displayed by
+	the host runtime.
+]]
 
 local Display = {}
-function Display.ViewportSize(): vector
-	local v3
-	if game.Players.LocalPlayer then
-		v3 = game.Players.LocalPlayer.PlayerGui.RenderGui.Present.AbsoluteSize
-	else
-		v3 = game.StarterGui.RenderGui.Present.AbsoluteSize
+
+function Display.SanitiseResolution(Intent: vector): vector
+	local ReturnRes: vector = vector.clamp(
+		Intent,
+		vector.create(1, 1),
+		vector.create(1024, 1024)
+	) // 1
+	if ReturnRes ~= Intent then
+		print( `plugin - display: Intended resolution ({Intent.x}, {Intent.y}) was sanitised at ({ReturnRes.x}, {ReturnRes.y})`)
 	end
-	return vector.create( v3.X, v3.Y, 0 )
+	return ReturnRes
 end
 
 function Display.New( Settings: { [string]: any } )
-	-- Enforcing the limit in './lib/Settings' before here AND including these assertions isn't platform-agnostic friendly...
-	-- ...Would be nice to report display parameter capabilities before taking the Pajamas project's word for it...
-	assert( Settings.Display_Res.x <= 1024, `Settings.Display_Res.x is set too high ({Settings.Display_Res.x}), Roblox EditableImage limit is 1024x1024)` )
-	assert( Settings.Display_Res.y <= 1024, `Settings.Display_Res.y is set too high ({Settings.Display_Res.y}), Roblox EditableImage limit is 1024x1024)` )
 	local Aspect_X: number = Settings.Display_Res.x / Settings.Display_Res.y
 	--Roblox: Create objects
 	local LocalPlayer = game:GetService("Players").LocalPlayer
@@ -39,7 +70,7 @@ function Display.New( Settings: { [string]: any } )
 		ResetOnSpawn = false,
 		Archivable = false,
 		Parent = if LocalPlayer then LocalPlayer.PlayerGui else game:GetService("StarterGui")
-		} do ScreenGui[ Prop ] = Value end
+		} :: {[string]: any} do ScreenGui[ Prop ] = Value end
 	ScreenGui = ScreenGui :: ScreenGui
 	-- EditableImage
 	assert( EditableImage, `EditableImage not created` )
@@ -63,7 +94,7 @@ function Display.New( Settings: { [string]: any } )
 			elseif Settings.Display_Resample == "Nearest" then Enum.ResamplerMode.Pixelated
 			else Enum.ResamplerMode.Default,
 		Parent = ScreenGui
-		} do ImagePresent[ Prop ] = Value end
+		} :: {[string]: any} do ImagePresent[ Prop ] = Value end
 	ImagePresent = ImagePresent :: ImageLabel -- Exit Typecast
 	
 	-- This is what we will be returning to whoever calls to initialize the display
