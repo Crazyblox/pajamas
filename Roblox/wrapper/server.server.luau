@@ -17,4 +17,5 @@ for _, t in Attributes do
 	i += 1
 end
 table.insert( Params, 1, script )
+task.synchronize()
 require(`../`)( table.unpack(Params) )
