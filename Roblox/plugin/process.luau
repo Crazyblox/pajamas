@@ -95,12 +95,6 @@ export type SharedData = {
 }
 
 local Process = {}
---type ProcessModule = {
---	read Init: (Script) -> (),
---	read ProjectDir: Folder,
---	read MainProcess: Process,
---	read Process: Process
---}
 
 local RunService = game:GetService("RunService")
 Process.ProjectDir = ( script.Parent :: any ) --Placeholder until Process.init is run
@@ -240,7 +234,7 @@ Process.Launch_Parse = function(
 	for i, rc_p in rc_Params do
 		-- Convert string inputs to correct output
 		local val = parse( Input[i] )
-		if not val then
+		if type( val ) == "nil" then
 			print(`Assigning launch default for {rc_p.name}`)
 			val = rc_p.default
 			Input[i] = val
@@ -267,9 +261,56 @@ Process.Launch_Init = function( self: Script )
 		if c:IsA("Actor") then IndexProcess( c ) end
 	end
 	Process.MainProcess = Process.GetProcessFromName( "Process_Main" )
-	Process.Process = IndexProcess( self:GetActor() )
+	Process.ThisProcess = IndexProcess( self:GetActor() )
 	table.freeze( Process )
 	Process_IsInit = true
+end
+
+export type Hook = {
+	Connect: (Hook, boolean?) -> (),
+	ConnectParallel: (Hook, boolean?) -> (),
+	Disconnect: (Hook) -> ()
+}
+
+local function GetProjectBindable( name: string ): BindableEvent
+	-- Define name
+	local sub_name = `Sub_{name}`
+	-- Fetch or create bindable 
+	local sub = Process.ProjectDir:FindFirstChild( sub_name )
+	if not sub then
+		sub = Instance.new("BindableEvent")
+		sub.Name = sub_name
+		sub.Parent = Process.ProjectDir
+	end
+	return sub
+end
+
+Process.Listen = function( msg: string )
+	local bindable = GetProjectBindable(msg)
+	-- Provide function that gets triggered when 
+	local Connection: RBXScriptConnection
+	local Hook = {}
+	function Hook:ConnectParallel(Function)
+		if Connection and ( not Connection.Connected ) then return end
+		Connection = bindable.Event:ConnectParallel(Function)
+	end
+	function Hook:Connect(Function)
+		if Connection and ( not Connection.Connected ) then return end
+		Connection = bindable.Event:Connect(Function)
+	end
+	function Hook:Disconnect()
+		if Connection and ( not Connection.Connected ) then return end
+		Connection:Disconnect()
+	end
+	return Hook
+end
+
+Process.SetEvent = function( msg: string )
+	GetProjectBindable(msg)
+end
+
+Process.Broadcast = function(n: string, ...)
+	GetProjectBindable(n):Fire(...)
 end
 
 return Process
