@@ -28,6 +28,6 @@ return table.freeze {
 	wait = 			task.wait,
 	synchronize = 	synchronize,
 	desynchronize = task.desynchronize or synchronize,
-	checksync = 	function(): boolean return is_synchronized() end,
+	checksync = 	is_synchronized,
 	checkdesync =	function(): boolean return not is_synchronized() end,
 }
